@@ -54,7 +54,6 @@ class BatteryNotificationsExtension {
         let prop_names = changed_props.deep_unpack()
         if ('Percentage' in prop_names) {
             this.update()
-            this._notify('Percentage ', '' + this.percentage)
         }
     }
 
@@ -174,8 +173,8 @@ class BatteryNotificationsExtension {
         })
         this._notification = new MessageTray.Notification(this._source, title, text,
             { icon: icon })
-        //this._notification.setTransient(true)
-        this._notification.setUrgency(3)
+        this._notification.setTransient(true)
+        //this._notification.setUrgency(3)
         this._notification.connect('destroy', function () {
             this._notification = null
         })
