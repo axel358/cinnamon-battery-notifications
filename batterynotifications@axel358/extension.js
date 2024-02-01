@@ -70,6 +70,7 @@ class BatteryNotificationsExtension {
     }
 
     enable() {
+        this._notify('dfgdfg', 'sdfsdf')
         //this.update()
     }
 
