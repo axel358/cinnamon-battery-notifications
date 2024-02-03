@@ -8,14 +8,14 @@ const St = imports.gi.St
 const ModalDialog = imports.ui.modalDialog
 const Util = imports.misc.util
 
-const DBusName = 'org.freedesktop.UPower'
-const BatteryPath = '/org/freedesktop/UPower/devices/battery_BAT0'
+const DBusName = "org.freedesktop.UPower"
+const BatteryPath = "/org/freedesktop/UPower/devices/battery_BAT0"
 const DeviceInterface = '<node> \
   <interface name="org.freedesktop.UPower.Device"> \
     <property name="Percentage" type="d" access="read" /> \
   </interface> \
 </node>'
-const UPowerPath = '/org/freedesktop/UPower'
+const UPowerPath = "/org/freedesktop/UPower"
 const UPowerInterface = '<node> \
   <interface name="org.freedesktop.UPower"> \
     <property name="OnBattery" type="b" access="read" /> \
@@ -25,6 +25,7 @@ const UPowerInterface = '<node> \
 class BatteryNotificationsExtension {
 
     constructor(uuid) {
+        this._uuid = uuid
         this._source = null
         this._notification = null
         this._low_shown = false
@@ -40,38 +41,48 @@ class BatteryNotificationsExtension {
 
         try {
             this.device_proxy = DeviceProxy(Gio.DBus.system, DBusName, BatteryPath)
-            this.device_proxy.connect('g-properties-changed', Lang.bind(this, this.device_props_changed))
+            this.device_proxy.connect("g-properties-changed", Lang.bind(this, this.device_props_changed))
             this.upower_proxy = UPowerProxy(Gio.DBus.system, DBusName, UPowerPath)
-            this.upower_proxy.connect('g-properties-changed', Lang.bind(this, this.upower_props_changed))
+            this.upower_proxy.connect("g-properties-changed", Lang.bind(this, this.upower_props_changed))
             this.on_battery = this.upower_proxy.OnBattery
             this.update()
         } catch (e) {
-            this._notify('Cinnamon Battery Notifications', e)
+            this._notify("Cinnamon Battery Notifications", e)
+            this.disable()
         }
     }
 
     device_props_changed(proxy, changed_props, invalidated_props) {
         let prop_names = changed_props.deep_unpack()
-        if ('Percentage' in prop_names) {
+        if ("Percentage" in prop_names) {
             this.update()
         }
     }
 
     upower_props_changed() {
+        //Listen for power connecting/disconnecting
         this.on_battery = this.upower_proxy.OnBattery
-        this._low_shown = this.on_battery
-        this._complete_shown = !this.on_battery
+        //Reset the values and update so that the dialogs get shown again if neccessary
+        this._low_shown = !this.on_battery
+        this._complete_shown = this.on_battery
         this.update()
-        this._notify('On battery ', this.upower_proxy.OnBattery + '')
     }
 
-    on_settings_changed() {
-        //this.forceUpdate()
-    }
+    on_settings_changed() { }
 
     enable() {
-        this._notify('dfgdfg', 'sdfsdf')
-        //this.update()
+        //From transparent-panels@germanfr
+        if (this.settings.getValue("first-launch")) {
+            this.settings.setValue("first-launch", false)
+            this._create_notification(_("Extension enabled"), _("Open extension settings to configure"))
+            this._notification.addButton(0, _("Extension settings"))
+            this._notification.connect("action-invoked", () => this._open_settings())
+            this._source.notify(this._notification)
+        }
+    }
+
+    _open_settings() {
+        Util.spawnCommandLine("xlet-settings extension " + this._uuid)
     }
 
 
@@ -101,10 +112,10 @@ class BatteryNotificationsExtension {
         let dialog = new ModalDialog.ModalDialog()
         dialog.contentLayout.add(new St.Label({
             text: _("Battery low"),
-            style_class: 'confirm-dialog-title',
+            style_class: "confirm-dialog-title",
             important: true
         }))
-        dialog.contentLayout.add(new St.Label({ text: `Battery has reached the specified minimum charge value (${this.low_value}%)` }))
+        dialog.contentLayout.add(new St.Label({ text: _(`Battery has reached the specified minimum charge value (${this.low_value}%)`) }))
         dialog.setButtons([
             {
                 label: _("Suspend"),
@@ -135,10 +146,10 @@ class BatteryNotificationsExtension {
         let dialog = new ModalDialog.ModalDialog()
         dialog.contentLayout.add(new St.Label({
             text: _("Charge complete"),
-            style_class: 'confirm-dialog-title',
+            style_class: "confirm-dialog-title",
             important: true
         }))
-        dialog.contentLayout.add(new St.Label({ text: `Battery has reached the specified maximum charge value (${this.complete_value}%)` }))
+        dialog.contentLayout.add(new St.Label({ text: _(`Battery has reached the specified maximum charge value (${this.complete_value}%)`) }))
         dialog.setButtons([
             {
                 label: _("OK"),
@@ -161,14 +172,14 @@ class BatteryNotificationsExtension {
         }
     }
 
-    _notify(title, text) {
+    _create_notification(title, text) {
         if (this._notification)
             this._notification.destroy()
 
         this._ensure_source()
 
         let icon = new St.Icon({
-            icon_name: "battery-full-symbolic",
+            icon_name: "battery-notifications",
             icon_type: St.IconType.SYMBOLIC,
             icon_size: this._source.ICON_SIZE
         })
@@ -176,19 +187,17 @@ class BatteryNotificationsExtension {
             { icon: icon })
         this._notification.setTransient(true)
         //this._notification.setUrgency(3)
-        this._notification.connect('destroy', function () {
+        this._notification.connect("destroy", function () {
             this._notification = null
         })
-        this._source.notify(this._notification)
-
     }
 
     _suspend() {
-        Util.spawnCommandLine('systemctl suspend')
+        Util.spawnCommandLine("systemctl suspend")
     }
 
     _shutdown() {
-        Util.spawnCommandLine('systemctl poweroff')
+        Util.spawnCommandLine("systemctl poweroff")
     }
 }
 
