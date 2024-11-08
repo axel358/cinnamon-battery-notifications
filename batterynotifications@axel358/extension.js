@@ -38,6 +38,11 @@ class BatteryNotificationsExtension {
       this.on_settings_changed
     );
     this.settings.bind("low-value", "low_value", this.on_settings_changed);
+    this.settings.bind("critical-value", "critical_value", this.on_settings_changed);
+    this.settings.bind("auto-switch-profiles", "auto_switch_profiles", this.on_settings_changed);
+    this.settings.bind("auto-power-saver", "auto_power_saver", this.on_settings_changed);
+    this.settings.bind("critical-action", "critical_action", this.on_settings_changed);
+    this.settings.bind("on-battery-profile", "on_battery_profile", this.on_settings_changed);
 
     const DeviceProxy = Gio.DBusProxy.makeProxyWrapper(DeviceInterface);
     this.device_proxy = null;
@@ -79,7 +84,7 @@ class BatteryNotificationsExtension {
     this.update();
   }
 
-  on_settings_changed() {}
+  on_settings_changed() { }
 
   enable() {
     //From transparent-panels@germanfr
@@ -102,11 +107,31 @@ class BatteryNotificationsExtension {
   update() {
     this.percentage = this.device_proxy.Percentage;
     if (this.on_battery) {
-      if (this.percentage <= this.low_value && !this._low_shown) {
-        this.show_battery_low_dialog();
-        this._low_shown = true;
+
+      if(this.auto_switch_profiles)
+        this._set_power_profile(this.on_battery_profile);
+
+      if (this.percentage <= this.critical_value && this.critical_action !== "nothing"){
+        if(this.critical_action === "shutdown")
+          this._shutdown();
+        else
+          this._suspend();
+
+        return;
+      }
+      if (this.percentage <= this.low_value) {
+        if (this.auto_power_saver)
+          this._set_power_profile("power-saver")
+
+        if (!this._low_shown) {
+          this.show_battery_low_dialog();
+          this._low_shown = true;
+        }
       }
     } else {
+      if(this.auto_switch_profiles)
+        this._set_power_profile("performance");
+
       if (this.percentage >= this.complete_value && !this._complete_shown) {
         this.show_charge_complete_dialog();
         this._complete_shown = true;
@@ -218,6 +243,10 @@ class BatteryNotificationsExtension {
     this._notification.connect("destroy", function () {
       this._notification = null;
     });
+  }
+
+  _set_power_profile(profile) {
+    Util.spawnCommandLine("powerprofilesctl set " + profile);
   }
 
   _suspend() {

@@ -1,5 +1,5 @@
 {
-   "head": {
+   "settings-head": {
       "type": "header",
       "description": "Settings"
    },
@@ -10,8 +10,7 @@
       "max": 100,
       "step": 1,
       "units": "%",
-      "description": "Charge complete value",
-      "tooltip": "Charge complete value"
+      "description": "Charge complete value"
    },
    "low-value": {
       "type": "spinbutton",
@@ -20,11 +19,55 @@
       "max": 90,
       "step": 1,
       "units": "%",
-      "description": "Battery low value",
-      "tooltip": "Battery low value"
+      "description": "Battery low value"
+   },
+   "critical-value": {
+      "type": "spinbutton",
+      "default": 10,
+      "min": 5,
+      "max": 15,
+      "step": 1,
+      "units": "%",
+      "description": "Battery critical value"
    },
    "first-launch": {
       "type": "generic",
       "default": true
+   },
+   "head-profiles": {
+      "type": "header",
+      "description": "Automation"
+   },
+   "auto-switch-profiles": {
+      "type": "switch",
+      "default": true,
+      "description": "Switch power profiles automatically (if available)"
+   },
+   "on-battery-profile": {
+      "type": "combobox",
+      "default": "balanced",
+      "description": "On battery profile",
+      "options": {
+         "Performance": "performance",
+         "Balanced": "balanced",
+         "Power saver": "power-saver"
+      },
+      "tooltip": "Power profile to use when using battery power"
+   },
+   "auto-power-saver": {
+      "type": "switch",
+      "default": true,
+      "description": "Turn on power saving automatically (if available)"
+   },
+   "critical-action": {
+      "type": "combobox",
+      "default": "nothing",
+      "description": "When battery critical",
+      "options": {
+         "Do nothing": "nothing",
+         "Suspend": "suspend",
+         "Shutdown": "shutdown"
+      },
+      "tooltip": "Action to take when the battery level reaches the specified critical value"
    }
 }
