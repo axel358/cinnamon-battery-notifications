@@ -69,5 +69,19 @@
          "Shutdown": "shutdown"
       },
       "tooltip": "Action to take when the battery level reaches the specified critical value"
+   },
+   "notifications-head": {
+      "type": "header",
+      "description": "Notifications"
+   },
+   "show-low-notification": {
+      "type": "switch",
+      "default": true,
+      "description": "Show low battery message"
+   },
+   "show-charged-notification": {
+      "type": "switch",
+      "default": true,
+      "description": "Show fully charged message"
    }
 }

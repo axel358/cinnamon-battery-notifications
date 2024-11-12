@@ -31,6 +31,7 @@ class BatteryNotificationsExtension {
     this._notification = null;
     this._low_shown = false;
     this._complete_shown = false;
+    this._power_profile = null;
     this.settings = new Settings.ExtensionSettings(this, uuid);
     this.settings.bind(
       "complete-value",
@@ -43,6 +44,8 @@ class BatteryNotificationsExtension {
     this.settings.bind("auto-power-saver", "auto_power_saver", this.on_settings_changed);
     this.settings.bind("critical-action", "critical_action", this.on_settings_changed);
     this.settings.bind("on-battery-profile", "on_battery_profile", this.on_settings_changed);
+    this.settings.bind("show-low-notification", "show_low_notification", this.on_settings_changed);
+    this.settings.bind("show-charged-notification", "show_charged_notification", this.on_settings_changed);
 
     const DeviceProxy = Gio.DBusProxy.makeProxyWrapper(DeviceInterface);
     this.device_proxy = null;
@@ -62,6 +65,8 @@ class BatteryNotificationsExtension {
       );
       this.on_battery = this.upower_proxy.OnBattery;
       this.update();
+      if (this.auto_switch_profiles)
+        this.update_power_profiles()
     } catch (e) {
       this._notify("Cinnamon Battery Notifications", e);
       this.disable();
@@ -82,6 +87,8 @@ class BatteryNotificationsExtension {
     this._low_shown = !this.on_battery;
     this._complete_shown = this.on_battery;
     this.update();
+    if (this.auto_switch_profiles)
+      this.update_power_profiles()
   }
 
   on_settings_changed() { }
@@ -107,36 +114,37 @@ class BatteryNotificationsExtension {
   update() {
     this.percentage = this.device_proxy.Percentage;
     if (this.on_battery) {
-
-      if(this.auto_switch_profiles)
-        this._set_power_profile(this.on_battery_profile);
-
-      if (this.percentage <= this.critical_value && this.critical_action !== "nothing"){
-        if(this.critical_action === "shutdown")
+      if (this.percentage <= this.critical_value && this.critical_action !== "nothing") {
+        if (this.critical_action === "shutdown")
           this._shutdown();
         else
           this._suspend();
 
         return;
       }
+
       if (this.percentage <= this.low_value) {
-        if (this.auto_power_saver)
+        if (this.auto_power_saver && this._power_profile !== "power-saver")
           this._set_power_profile("power-saver")
 
-        if (!this._low_shown) {
+        if (this.show_low_notification && !this._low_shown) {
           this.show_battery_low_dialog();
           this._low_shown = true;
         }
       }
     } else {
-      if(this.auto_switch_profiles)
-        this._set_power_profile("performance");
-
-      if (this.percentage >= this.complete_value && !this._complete_shown) {
+      if (this.show_charged_notification && !this._complete_shown && this.percentage >= this.complete_value) {
         this.show_charge_complete_dialog();
         this._complete_shown = true;
       }
     }
+  }
+
+  update_power_profiles() {
+    if (this.on_battery)
+      this._set_power_profile(this.on_battery_profile);
+    else
+      this._set_power_profile("performance");
   }
 
   disable() {
@@ -247,6 +255,7 @@ class BatteryNotificationsExtension {
 
   _set_power_profile(profile) {
     Util.spawnCommandLine("powerprofilesctl set " + profile);
+    this._power_profile = profile
   }
 
   _suspend() {
