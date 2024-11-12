@@ -47,6 +47,7 @@
       "type": "combobox",
       "default": "balanced",
       "description": "On battery profile",
+      "dependency": "auto-switch-profiles",
       "options": {
          "Performance": "performance",
          "Balanced": "balanced",
